@@ -13,26 +13,237 @@
       <li><a href="index.html">Home</a></li>
       <li><a href="find.html">Find</a></li>
       <li><a href="browse.html">Browse</a></li>
+      <li><a href="compare.html">Compare</a></li>
+      <li><a href="wishlist.html">Wishlist</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="contact.html">Contact</a></li>
     </ul>
   </nav>
 
   <main class="container content">
-    <h1>Car Dodge — Simple Game</h1>
-    <p>Use left/right arrow keys or A/D to move. Avoid incoming cars to score points.</p>
-    <canvas id="gameCanvas" width="360" height="600" style="background:#111;border-radius:12px;display:block;margin:12px auto;"></canvas>
-    <div style="text-align:center;"><button id="startBtn" class="btn primary">Start Game</button></div>
-    <div id="score" style="text-align:center;margin-top:8px;color:var(--muted)">Score: 0</div>
+    <h1>Car Dodge Challenge</h1>
+    <p>Use left/right arrow keys or A/D to move your car. Avoid incoming traffic to score points!</p>
+    
+    <div style="text-align: center; margin: 20px 0;">
+      <canvas id="gameCanvas" width="400" height="600" style="background:#111;border-radius:12px;display:block;margin:12px auto;border: 2px solid var(--border-color);"></canvas>
+    </div>
+    
+    <div style="text-align:center; margin: 20px 0;">
+      <button id="startBtn" class="btn primary">Start Game</button>
+      <button id="resetBtn" class="btn ghost" style="margin-left: 10px;">Reset</button>
+    </div>
+    
+    <div id="score" style="text-align:center; margin-top:8px; color:var(--text-accent); font-size: 1.2rem; font-weight: bold;">Score: 0</div>
+    <div id="highScore" style="text-align:center; margin-top:8px; color:var(--muted);">High Score: 0</div>
+    <div id="level" style="text-align:center; margin-top:8px; color:var(--text-secondary);">Level: 1</div>
+    
+    <div style="margin-top: 30px; padding: 20px; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color);">
+      <h3>How to Play:</h3>
+      <ul style="text-align: left; color: var(--text-secondary);">
+        <li>Use <strong>Arrow Keys</strong> or <strong>A/D Keys</strong> to move left and right</li>
+        <li>Avoid crashing into other cars</li>
+        <li>Each car you dodge gives you 1 point</li>
+        <li>Game gets slightly faster every 15 points</li>
+        <li>Try to beat your high score!</li>
+      </ul>
+    </div>
   </main>
 
+  <footer class="footer">© CarFinder — Demo site</footer>
+
 <script>
-const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
-let player = {x:160,y:520,w:40,h:70,speed:6}; let keys={}; let obstacles=[]; let score=0; let running=false;
-document.addEventListener('keydown', e=>keys[e.key]=true); document.addEventListener('keyup', e=>keys[e.key]=false);
-function spawn(){ const x = Math.random()*(canvas.width-60)+30; obstacles.push({x:x,y:-80,w:40,h:70,spd:2+Math.random()*3}); }
-function update(){ if(!running) return; if(keys['ArrowLeft']||keys['a']) player.x-=player.speed; if(keys['ArrowRight']||keys['d']) player.x+=player.speed; player.x = Math.max(10, Math.min(canvas.width-player.w-10, player.x)); obstacles.forEach(o=>{ o.y+=o.spd; if(o.y>canvas.height+100){ score+=1; document.getElementById('score').innerText='Score: '+score; o.y=-200; o.x=Math.random()*(canvas.width-60)+30; } }); for(const o of obstacles){ if(o.x<player.x+player.w && o.x+o.w>player.x && o.y<player.y+player.h && o.y+o.h>player.y){ running=false; setTimeout(()=>{ alert('Game over! Score: '+score); },50); } } }
-function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle='#4f46e5'; ctx.fillRect(player.x,player.y,player.w,player.h); ctx.fillStyle='#ef4444'; obstacles.forEach(o=>ctx.fillRect(o.x,o.y,o.w,o.h)); if(running) requestAnimationFrame(()=>{ update(); draw(); }); }
-function startGame(){ obstacles=[]; score=0; for(let i=0;i<4;i++) spawn(); running=true; draw(); }
-document.getElementById('startBtn').addEventListener('click', ()=>{ startGame(); });
+const canvas = document.getElementById('gameCanvas'); 
+const ctx = canvas.getContext('2d');
+
+// Game settings - Made easier
+let player = {x:180, y:500, w:50, h:80, speed:8}; // Bigger player, faster movement
+let keys = {}; 
+let obstacles = []; 
+let score = 0; 
+let highScore = localStorage.getItem('cf_highScore') || 0;
+let running = false;
+let gameSpeed = 1;
+let level = 1;
+let spawnRate = 1800; // Slower spawn rate (milliseconds)
+
+// Update displays
+document.getElementById('highScore').innerText = 'High Score: ' + highScore;
+document.getElementById('level').innerText = 'Level: ' + level;
+
+// Controls
+document.addEventListener('keydown', e => keys[e.key] = true); 
+document.addEventListener('keyup', e => keys[e.key] = false);
+
+function spawnObstacle() {
+  const x = Math.random() * (canvas.width - 80) + 30; // More space between obstacles
+  const speed = 1.5 + Math.random() * 1.5 + (gameSpeed * 0.3); // Slower base speed
+  const width = 45 + Math.random() * 20; // Variable widths
+  obstacles.push({
+    x: x, 
+    y: -100, 
+    w: width, 
+    h: 70, 
+    spd: speed,
+    color: `hsl(${Math.random() * 360}, 70%, 50%)` // Random colors for variety
+  });
+}
+
+function updateGame() {
+  if(!running) return;
+  
+  // Player movement - smoother controls
+  if((keys['ArrowLeft'] || keys['a']) && player.x > 10) {
+    player.x -= player.speed;
+  }
+  if((keys['ArrowRight'] || keys['d']) && player.x < canvas.width - player.w - 10) {
+    player.x += player.speed;
+  }
+  
+  // Update obstacles
+  obstacles.forEach(o => {
+    o.y += o.spd;
+    // Remove obstacles that go off screen and award points
+    if(o.y > canvas.height + 100) {
+      score += 1;
+      document.getElementById('score').innerText = 'Score: ' + score;
+      
+      // Level up every 15 points (slower progression)
+      if(score % 15 === 0) {
+        level++;
+        gameSpeed += 0.1; // Smaller speed increase
+        spawnRate = Math.max(1000, spawnRate - 100); // Limit minimum spawn rate
+        document.getElementById('level').innerText = 'Level: ' + level;
+      }
+    }
+  });
+  
+  // Remove obstacles that are off screen
+  obstacles = obstacles.filter(o => o.y < canvas.height + 150);
+  
+  // Collision detection
+  for(const o of obstacles) {
+    if(o.x < player.x + player.w && 
+       o.x + o.w > player.x && 
+       o.y < player.y + player.h && 
+       o.y + o.h > player.y) {
+      running = false;
+      
+      // Update high score
+      if(score > highScore) {
+        highScore = score;
+        localStorage.setItem('cf_highScore', highScore);
+        document.getElementById('highScore').innerText = 'High Score: ' + highScore;
+      }
+      
+      setTimeout(() => {
+        alert('Game Over!\nYour score: ' + score + '\nHigh Score: ' + highScore + '\nLevel: ' + level);
+      }, 100);
+    }
+  }
+}
+
+function drawGame() {
+  // Clear canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Draw road with gradient
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  gradient.addColorStop(0, '#1a1a1a');
+  gradient.addColorStop(1, '#2a2a2a');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Draw road markings (dashed lines)
+  ctx.fillStyle = '#ffff00';
+  ctx.strokeStyle = '#ffff00';
+  ctx.lineWidth = 3;
+  
+  // Center dividing line
+  ctx.setLineDash([20, 20]);
+  ctx.beginPath();
+  ctx.moveTo(canvas.width/2, 0);
+  ctx.lineTo(canvas.width/2, canvas.height);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  
+  // Draw player car (more detailed)
+  ctx.fillStyle = '#4f46e5';
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+  
+  // Car details
+  ctx.fillStyle = '#60a5fa';
+  ctx.fillRect(player.x + 5, player.y + 5, player.w - 10, 15); // Windshield
+  ctx.fillRect(player.x + 5, player.y + player.h - 20, player.w - 10, 15); // Rear window
+  
+  // Wheels
+  ctx.fillStyle = '#333';
+  ctx.fillRect(player.x - 3, player.y + 10, 5, 20);
+  ctx.fillRect(player.x - 3, player.y + player.h - 30, 5, 20);
+  ctx.fillRect(player.x + player.w - 2, player.y + 10, 5, 20);
+  ctx.fillRect(player.x + player.w - 2, player.y + player.h - 30, 5, 20);
+  
+  // Draw obstacles with colors
+  obstacles.forEach(o => {
+    ctx.fillStyle = o.color;
+    ctx.fillRect(o.x, o.y, o.w, o.h);
+    
+    // Obstacle details
+    ctx.fillStyle = '#000';
+    ctx.fillRect(o.x + 5, o.y + 5, o.w - 10, 10); // Windshield
+    ctx.fillRect(o.x + 5, o.y + o.h - 15, o.w - 10, 10); // Rear window
+  });
+  
+  if(running) {
+    requestAnimationFrame(() => {
+      updateGame();
+      drawGame();
+    });
+  }
+}
+
+function startGame() {
+  obstacles = [];
+  score = 0;
+  gameSpeed = 1;
+  level = 1;
+  spawnRate = 1800;
+  
+  document.getElementById('score').innerText = 'Score: 0';
+  document.getElementById('level').innerText = 'Level: ' + level;
+  
+  running = true;
+  drawGame();
+  
+  // Spawn new obstacles regularly (slower)
+  const spawnInterval = setInterval(() => {
+    if(running) {
+      spawnObstacle();
+      // Occasionally spawn two cars for variety
+      if(Math.random() < 0.3 && level > 2) {
+        setTimeout(() => spawnObstacle(), 300);
+      }
+    } else {
+      clearInterval(spawnInterval);
+    }
+  }, spawnRate);
+}
+
+function resetGame() {
+  running = false;
+  obstacles = [];
+  score = 0;
+  gameSpeed = 1;
+  level = 1;
+  document.getElementById('score').innerText = 'Score: 0';
+  document.getElementById('level').innerText = 'Level: ' + level;
+  drawGame();
+}
+
+document.getElementById('startBtn').addEventListener('click', startGame);
+document.getElementById('resetBtn').addEventListener('click', resetGame);
+
+// Initial draw
+drawGame();
 </script>
 </body>
 </html>
