@@ -18,6 +18,9 @@
   </nav>
 
   <main class="browse-page container">
+    <h1>Find Your Perfect Car</h1>
+    <p>Browse our curated collection or use filters to find cars that match your preferences.</p>
+    
     <div class="controls-row">
       <input id="searchInput" placeholder="Search brand or model..." />
       <select id="brandFilter"><option value="">All brands</option></select>
@@ -27,13 +30,15 @@
       <input id="maxPrice" placeholder="Max L" style="width:80px"/>
       <button id="clearFilters" class="btn ghost">Clear</button>
     </div>
+    
+    <div id="resultsInfo" style="margin: 1rem 0; color: var(--text-secondary);"></div>
+    
     <div id="resultsGrid" class="grid"></div>
   </main>
 
   <footer class="footer">© CarFinder — Demo site</footer>
 
   <script src="data.js"></script>
-  <script src="script.js"></script>
   <script>
   // enhanced browse with filters, wishlist, compare and details link
   document.addEventListener('DOMContentLoaded', ()=>{
@@ -47,54 +52,169 @@
 
     const qInput = document.getElementById('searchInput');
     const grid = document.getElementById('resultsGrid');
+    const resultsInfo = document.getElementById('resultsInfo');
 
     function scoreAndFilter(){
       const q = qInput.value.toLowerCase();
       const brandSel = bf.value; const bodySel = bo.value; const fuelSel = fu.value;
-      const minP = parseFloat(document.getElementById('minPrice').value||'-1');
+      const minP = parseFloat(document.getElementById('minPrice').value||'0');
       const maxP = parseFloat(document.getElementById('maxPrice').value||'9999');
-      // read answers for smarter scoring
+      
+      // Read answers and personalized recommendations
       const stored = JSON.parse(localStorage.getItem('cf_answers')||'null');
-      let list = cars.map(c=>({c,score:0}));
+      const recommendations = JSON.parse(localStorage.getItem('cf_recommendations')||'null');
+      
+      let list = cars.map(c=>({c,score:0,matchReasons:[]}));
+      
       list.forEach(item=>{
-        const car=item.c;
-        // base score by text match
-        if(q && (car.brand+' '+car.model).toLowerCase().includes(q)) item.score+=30;
-        // apply filters
+        const car = item.c;
+        
+        // Base score by text match
+        if(q && (car.brand+' '+car.model).toLowerCase().includes(q)) {
+          item.score += 30;
+          item.matchReasons.push('Matches your search');
+        }
+        
+        // Apply filters
         if(brandSel && car.brand!==brandSel) item.score=-9999;
         if(bodySel && car.body!==bodySel) item.score=-9999;
         if(fuelSel && car.fuel!==fuelSel) item.score=-9999;
         if(!(car.price>=minP && car.price<=maxP)) item.score=-9999;
-        // if we have answers, add weighted matching
+        
+        if(item.score === -9999) return;
+        
+        // Personalized scoring based on wizard answers
         if(stored){
-          if(stored.body && car.body.toLowerCase().includes(stored.body.toLowerCase())) item.score+=40;
-          if(stored.fuel && car.fuel.toLowerCase()===stored.fuel.toLowerCase()) item.score+=30;
-          if(stored.budget){
-            const b = stored.budget;
-            const p = car.price;
-            if(b==='<5' && p<5) item.score+=15;
-            if(b==='5-10' && p>=5 && p<=10) item.score+=15;
-            if(b==='10-20' && p>10 && p<=20) item.score+=15;
-            if(b==='>20' && p>20) item.score+=15;
+          // Body type match (high priority)
+          if(stored.body && car.body.toLowerCase().includes(stored.body.toLowerCase().split(' ')[0])) {
+            item.score += 50;
+            item.matchReasons.push('Perfect body type match');
           }
-          if (stored) {
-  if (stored.country && stored.country.length > 0) {
-    if (car.country && car.country.toLowerCase() === stored.country.toLowerCase()) item.score += 50;
-    else item.score -= 20; // deprioritize cars not in selected country
-  }
-  // existing scoring rules for body/fuel/budget/brand...
-}
-
-          if(stored.brand && stored.brand.length>1 && car.brand.toLowerCase().includes(stored.brand.toLowerCase())) item.score+=20;
+          
+          // Fuel type match
+          if(stored.fuel && car.fuel.toLowerCase()===stored.fuel.toLowerCase().split(' ')[0]) {
+            item.score += 40;
+            item.matchReasons.push('Matches preferred fuel type');
+          }
+          
+          // Budget matching
+          if(stored.budget){
+            const budget = stored.budget;
+            const price = car.price;
+            if(budget.includes('Under ₹5') && price<5) {
+              item.score += 30;
+              item.matchReasons.push('Fits your budget');
+            }
+            else if(budget.includes('₹5-10') && price>=5 && price<=10) {
+              item.score += 30;
+              item.matchReasons.push('Fits your budget');
+            }
+            else if(budget.includes('₹10-20') && price>10 && price<=20) {
+              item.score += 30;
+              item.matchReasons.push('Fits your budget');
+            }
+            else if(budget.includes('₹20-50') && price>20 && price<=50) {
+              item.score += 30;
+              item.matchReasons.push('Fits your budget');
+            }
+            else if(budget.includes('₹50 Lakhs - 1 Crore') && price>50 && price<=100) {
+              item.score += 30;
+              item.matchReasons.push('Fits your budget');
+            }
+            else if(budget.includes('Above ₹1 Crore') && price>100) {
+              item.score += 30;
+              item.matchReasons.push('Fits your budget');
+            }
+          }
+          
+          // Personality-based recommendations
+          if(stored.personality){
+            const personality = stored.personality.toLowerCase();
+            
+            if(personality.includes('adventure') && (car.body==='SUV' || car.features?.some(f=>f.toLowerCase().includes('offroad')||f.toLowerCase().includes('all-wheel')))) {
+              item.score += 25;
+              item.matchReasons.push('Great for adventures');
+            }
+            
+            if(personality.includes('family') && (car.seats>=5 || car.features?.some(f=>f.toLowerCase().includes('safety')||f.toLowerCase().includes('comfort')))) {
+              item.score += 25;
+              item.matchReasons.push('Family-friendly features');
+            }
+            
+            if(personality.includes('tech') && car.features?.some(f=>f.toLowerCase().includes('camera')||f.toLowerCase().includes('display')||f.toLowerCase().includes('assist'))) {
+              item.score += 25;
+              item.matchReasons.push('Advanced technology');
+            }
+            
+            if(personality.includes('performance') && (car.acceleration?.includes('0-100') || car.topSpeed?.includes('200') || car.features?.some(f=>f.toLowerCase().includes('sport')||f.toLowerCase().includes('turbo')))) {
+              item.score += 25;
+              item.matchReasons.push('High performance');
+            }
+            
+            if(personality.includes('eco') && (car.fuel==='Electric'||car.fuel==='Hybrid')) {
+              item.score += 25;
+              item.matchReasons.push('Eco-friendly choice');
+            }
+            
+            if(personality.includes('luxury') && (car.price>30 || car.features?.some(f=>f.toLowerCase().includes('premium')||f.toLowerCase().includes('leather')||f.toLowerCase().includes('luxury')))) {
+              item.score += 25;
+              item.matchReasons.push('Luxury features');
+            }
+          }
+          
+          // Usage-based recommendations
+          if(stored.usage){
+            const usage = stored.usage.toLowerCase();
+            
+            if(usage.includes('city') && (car.body==='Hatchback' || (car.mileage && parseFloat(car.mileage) > 15))) {
+              item.score += 20;
+              item.matchReasons.push('Ideal for city driving');
+            }
+            
+            if(usage.includes('highway') && (car.topSpeed && parseInt(car.topSpeed) > 180)) {
+              item.score += 20;
+              item.matchReasons.push('Great for highway cruising');
+            }
+            
+            if(usage.includes('off-road') && (car.body==='SUV' || car.features?.some(f=>f.toLowerCase().includes('offroad')||f.toLowerCase().includes('4wd')))) {
+              item.score += 20;
+              item.matchReasons.push('Built for off-road');
+            }
+          }
+          
+          // Country availability
+          if(stored.country && car.location?.country){
+            if(car.location.country.toLowerCase() === stored.country.toLowerCase()) {
+              item.score += 15;
+              item.matchReasons.push('Available in your country');
+            }
+          }
         }
       });
-      list = list.filter(x=>x.score>-9000).sort((a,b)=>b.score-a.score).map(x=>x.c);
+      
+      list = list.filter(x=>x.score>-9000)
+                 .sort((a,b)=>b.score-a.score)
+                 .map(x=>x.c);
+      
       return list;
     }
 
     function render(list){
       grid.innerHTML='';
-      if(list.length===0){ grid.innerHTML='<p class="muted">No matches found.</p>'; return; }
+      if(list.length===0){ 
+        grid.innerHTML='<p class="muted">No matches found. Try adjusting your filters.</p>'; 
+        resultsInfo.innerHTML = '';
+        return; 
+      }
+      
+      // Show personalized message if user completed the wizard
+      const stored = JSON.parse(localStorage.getItem('cf_answers')||'null');
+      if(stored) {
+        resultsInfo.innerHTML = `<strong>✨ Personalized recommendations based on your preferences:</strong>`;
+      } else {
+        resultsInfo.innerHTML = `<strong>${list.length} cars found</strong>`;
+      }
+      
       list.slice(0,80).forEach(c=>{
         const el = document.createElement('article'); el.className='card';
         el.innerHTML = `
@@ -114,12 +234,47 @@
     }
 
     // public actions
-    window.addToWishlist = function(id){ let arr = JSON.parse(localStorage.getItem('cf_wishlist')||'[]'); if(!arr.includes(id)) arr.push(id); localStorage.setItem('cf_wishlist', JSON.stringify(arr)); alert('Saved to wishlist'); };
-    window.toggleCompare = function(id){ let arr = JSON.parse(localStorage.getItem('cf_compare')||'[]'); if(arr.includes(id)){ arr = arr.filter(x=>x!==id); } else { if(arr.length<4) arr.push(id); else { alert('Max 4 to compare'); return; } } localStorage.setItem('cf_compare', JSON.stringify(arr)); alert('Compare list updated'); };
+    window.addToWishlist = function(id){ 
+      let arr = JSON.parse(localStorage.getItem('cf_wishlist')||'[]'); 
+      if(!arr.includes(id)) {
+        arr.push(id); 
+        localStorage.setItem('cf_wishlist', JSON.stringify(arr)); 
+        alert('Added to wishlist!');
+      } else {
+        alert('Already in wishlist!');
+      }
+    };
+    
+    window.toggleCompare = function(id){ 
+      let arr = JSON.parse(localStorage.getItem('cf_compare')||'[]'); 
+      if(arr.includes(id)){ 
+        arr = arr.filter(x=>x!==id); 
+      } else { 
+        if(arr.length<4) {
+          arr.push(id); 
+        } else { 
+          alert('Maximum 4 cars can be compared'); 
+          return; 
+        } 
+      } 
+      localStorage.setItem('cf_compare', JSON.stringify(arr)); 
+      alert('Compare list updated'); 
+    };
 
     // wire filters
-    ['searchInput','brandFilter','bodyFilter','fuelFilter','minPrice','maxPrice'].forEach(id=> document.getElementById(id).addEventListener('input', ()=>{ render(scoreAndFilter()); }));
-    document.getElementById('clearFilters').addEventListener('click', ()=>{ document.getElementById('searchInput').value=''; document.getElementById('brandFilter').value=''; document.getElementById('bodyFilter').value=''; document.getElementById('fuelFilter').value=''; document.getElementById('minPrice').value=''; document.getElementById('maxPrice').value=''; render(scoreAndFilter()); });
+    ['searchInput','brandFilter','bodyFilter','fuelFilter','minPrice','maxPrice'].forEach(id=> 
+      document.getElementById(id).addEventListener('input', ()=>{ render(scoreAndFilter()); })
+    );
+    
+    document.getElementById('clearFilters').addEventListener('click', ()=>{
+      document.getElementById('searchInput').value='';
+      document.getElementById('brandFilter').value='';
+      document.getElementById('bodyFilter').value='';
+      document.getElementById('fuelFilter').value='';
+      document.getElementById('minPrice').value='';
+      document.getElementById('maxPrice').value='';
+      render(scoreAndFilter());
+    });
 
     render(scoreAndFilter());
   });
