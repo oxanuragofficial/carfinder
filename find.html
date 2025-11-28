@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Find Your Car - CarFinder</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="loader" class="loader">
+    <img src="images/tyre.svg" class="spin" alt="Loading tyre" />
+    <p>Preparing Questions...</p>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-left"><a href="index.html" class="brand">CarFinder</a></div>
+    <ul class="nav-right">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="browse.html">Browse</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+  </nav>
+
+  <main class="wizard-page">
+    <section class="wizard-card" id="wizardCard" aria-live="polite">
+      <div class="progress" id="progressBar"><span id="progressText">Question 1 of 7</span></div>
+      <h2 id="questionText">Loading question...</h2>
+      <div id="optionsBox" class="options-grid"></div>
+
+      <div class="wizard-controls">
+        <button id="prevBtn" class="btn ghost" disabled>Back</button>
+        <button id="nextBtn" class="btn primary">Next</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="data.js"></script>
+  <script src="script.js"></script>
+  <script src="wizard.js"></script>
+</body>
+</html>
