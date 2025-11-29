@@ -78,3 +78,7 @@ if (document.readyState === 'loading') {
 } else {
   initMobileMenu();
 }
+// Developer credit in console
+console.log('%c🚗 CarFinder Premium', 'font-size: 20px; font-weight: bold; color: #2563eb;');
+console.log('%cDeveloped by ANURAG KUMAR', 'font-size: 16px; color: #7c3aed; font-weight: bold;');
+console.log('%cA modern, responsive car discovery platform showcasing cutting-edge web development', 'color: #64748b;');
