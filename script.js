@@ -29,3 +29,52 @@ function createEl(html){
   t.innerHTML = html.trim();
   return t.content.firstChild;
 }
+// ===== MOBILE MENU FUNCTIONALITY =====
+function initMobileMenu() {
+  // Create mobile menu button if it doesn't exist
+  const existingMobileBtn = document.querySelector('.mobile-menu-btn');
+  if (!existingMobileBtn) {
+    const nav = document.querySelector('.nav');
+    const navRight = document.querySelector('.nav-right');
+    
+    if (nav && navRight) {
+      const mobileBtn = document.createElement('button');
+      mobileBtn.className = 'mobile-menu-btn';
+      mobileBtn.innerHTML = '☰';
+      mobileBtn.setAttribute('aria-label', 'Toggle menu');
+      
+      // Insert button before nav-right
+      nav.insertBefore(mobileBtn, navRight);
+      
+      // Add click event
+      mobileBtn.addEventListener('click', function() {
+        navRight.classList.toggle('active');
+        mobileBtn.innerHTML = navRight.classList.contains('active') ? '✕' : '☰';
+      });
+      
+      // Close menu when clicking on links
+      const navLinks = navRight.querySelectorAll('a');
+      navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          navRight.classList.remove('active');
+          mobileBtn.innerHTML = '☰';
+        });
+      });
+      
+      // Close menu when clicking outside
+      document.addEventListener('click', function(event) {
+        if (!nav.contains(event.target)) {
+          navRight.classList.remove('active');
+          mobileBtn.innerHTML = '☰';
+        }
+      });
+    }
+  }
+}
+
+// Initialize mobile menu when page loads
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initMobileMenu);
+} else {
+  initMobileMenu();
+}

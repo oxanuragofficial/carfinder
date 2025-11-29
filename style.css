@@ -421,16 +421,99 @@ a{color:inherit;text-decoration:none}
 }
 
 /* responsive tweaks */
-@media (max-width:768px){
-  .hero h1{font-size:2.5rem}
-  .nav-right{gap:1rem}
-  .options-grid{grid-template-columns:1fr}
-  .wizard-card{padding:1.5rem;margin:1rem}
-  .controls-row{flex-direction:column;align-items:stretch}
+/* ===== MOBILE RESPONSIVE DESIGN ===== */
+@media (max-width: 768px) {
+  .nav {
+    flex-wrap: wrap;
+    padding: 1rem;
+    position: relative;
+  }
+  
+  .nav-right {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    background: var(--card-bg);
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    padding: 1rem;
+    border-top: 1px solid var(--border-color);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    backdrop-filter: blur(20px);
+    z-index: 1000;
+  }
+  
+  .nav-right.active {
+    display: flex;
+  }
+  
+  .nav-right li {
+    margin: 0.5rem 0;
+    width: 100%;
+  }
+  
+  .nav-right a,
+  .nav-right .btn {
+    display: block;
+    width: 100%;
+    padding: 1rem;
+    text-align: center;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
+    margin: 0.25rem 0;
+  }
+  
+  /* Mobile menu button */
+  .mobile-menu-btn {
+    display: block !important;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.2rem;
+  }
+  
+  .hero h1 {
+    font-size: 2.2rem;
+  }
+  
+  .hero p {
+    font-size: 1.1rem;
+  }
+  
+  .container {
+    padding: 1rem;
+  }
+  
+  .wizard-card {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+  
+  .options-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .controls-row {
+    flex-direction: column;
+  }
 }
 
-@media (max-width:640px){
-  .hero h1{font-size:2rem}
-  .nav{padding:1rem}
-  .nav-right{display:none}
+@media (max-width: 640px) {
+  .hero h1 {
+    font-size: 1.8rem;
+  }
+}
+
+/* Hide mobile menu button on desktop */
+.mobile-menu-btn {
+  display: none;
 }
