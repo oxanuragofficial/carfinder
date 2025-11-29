@@ -90,6 +90,14 @@
       margin-top: 20px;
       text-align: left;
     }
+
+    /* Prevent body scroll when touching game */
+    body.game-active {
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+      height: 100%;
+    }
     
     @media (max-width: 768px) {
       .mobile-controls {
@@ -100,6 +108,7 @@
         width: 100%;
         height: auto;
         max-width: 400px;
+        max-height: 60vh;
       }
       
       .control-btn {
@@ -107,15 +116,16 @@
         height: 70px;
         font-size: 28px;
       }
-    }
-    
-    @media (max-width: 480px) {
+
       .game-container {
         padding: 10px;
       }
-      
+    }
+    
+    @media (max-width: 480px) {
       #gameCanvas {
         max-width: 350px;
+        max-height: 50vh;
       }
       
       .control-btn {
@@ -127,6 +137,10 @@
       .game-stats {
         flex-direction: column;
         gap: 10px;
+      }
+
+      h1 {
+        font-size: 1.8rem;
       }
     }
   </style>
@@ -181,7 +195,7 @@
       <div class="instructions">
         <h3>How to Play:</h3>
         <p><strong>Desktop:</strong> Use LEFT/RIGHT arrow keys or A/D keys</p>
-        <p><strong>Mobile:</strong> Use the touch buttons or swipe left/right</p>
+        <p><strong>Mobile:</strong> Use the touch buttons or swipe on the game area</p>
         <p><strong>Goal:</strong> Avoid crashing into other cars</p>
         <p><strong>Scoring:</strong> +1 point for each car dodged</p>
         <p>Game gets faster every 15 points!</p>
@@ -223,21 +237,26 @@
     
     // Controls
     const keys = {};
-    let touchStartX = 0;
+    let isTouching = false;
     
     // Initialize displays
     document.getElementById('highScoreDisplay').textContent = gameState.highScore;
     
     // Event listeners for keyboard
     document.addEventListener('keydown', (e) => {
-      keys[e.key] = true;
+      if (['ArrowLeft', 'ArrowRight', 'a', 'd'].includes(e.key)) {
+        e.preventDefault();
+        keys[e.key] = true;
+      }
     });
     
     document.addEventListener('keyup', (e) => {
-      keys[e.key] = false;
+      if (['ArrowLeft', 'ArrowRight', 'a', 'd'].includes(e.key)) {
+        keys[e.key] = false;
+      }
     });
     
-    // Event listeners for touch controls
+    // Event listeners for touch controls - FIXED SCROLL ISSUE
     document.getElementById('leftBtn').addEventListener('touchstart', (e) => {
       e.preventDefault();
       keys['ArrowLeft'] = true;
@@ -258,32 +277,64 @@
       keys['ArrowRight'] = false;
     });
     
-    // Touch swipe controls for mobile
-    canvas.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      touchStartX = e.touches[0].clientX;
-    });
+    // Touch swipe controls for mobile - FIXED SCROLL ISSUE
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
     
-    canvas.addEventListener('touchmove', (e) => {
+    function handleTouchStart(e) {
       e.preventDefault();
       if (!gameState.running || gameState.paused) return;
       
-      const touchX = e.touches[0].clientX;
+      isTouching = true;
+      document.body.classList.add('game-active');
+      
+      const touch = e.touches[0];
       const rect = canvas.getBoundingClientRect();
-      const canvasX = touchX - rect.left;
+      const canvasX = touch.clientX - rect.left;
       
       // Move player to touch position
       player.x = canvasX - player.width / 2;
+      keepPlayerInBounds();
+    }
+    
+    function handleTouchMove(e) {
+      e.preventDefault();
+      if (!gameState.running || gameState.paused || !isTouching) return;
       
-      // Keep player within bounds
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const canvasX = touch.clientX - rect.left;
+      
+      // Move player to touch position
+      player.x = canvasX - player.width / 2;
+      keepPlayerInBounds();
+    }
+    
+    function handleTouchEnd(e) {
+      e.preventDefault();
+      isTouching = false;
+      document.body.classList.remove('game-active');
+    }
+    
+    function keepPlayerInBounds() {
       if (player.x < 10) player.x = 10;
-      if (player.x > canvas.width - player.width - 10) player.x = canvas.width - player.width - 10;
-    });
+      if (player.x > canvas.width - player.width - 10) {
+        player.x = canvas.width - player.width - 10;
+      }
+    }
     
     // Game control buttons
     document.getElementById('startBtn').addEventListener('click', startGame);
     document.getElementById('pauseBtn').addEventListener('click', togglePause);
     document.getElementById('resetBtn').addEventListener('click', resetGame);
+    
+    // Prevent scroll when touching control buttons
+    document.querySelectorAll('.control-btn').forEach(btn => {
+      btn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+      });
+    });
     
     function spawnObstacle() {
       const width = 40 + Math.random() * 30;
@@ -313,7 +364,7 @@
       }
       
       // Keep player within bounds
-      player.x = Math.max(10, Math.min(canvas.width - player.width - 10, player.x));
+      keepPlayerInBounds();
       
       // Update obstacles
       obstacles.forEach(obstacle => {
@@ -494,6 +545,7 @@
     
     function gameOver() {
       gameState.running = false;
+      document.body.classList.remove('game-active');
       
       // Update high score
       if (gameState.score > gameState.highScore) {
@@ -516,6 +568,11 @@
     
     // Initial draw
     drawGame();
+
+    // Clean up when leaving page
+    window.addEventListener('beforeunload', () => {
+      document.body.classList.remove('game-active');
+    });
   </script>
 </body>
 </html>

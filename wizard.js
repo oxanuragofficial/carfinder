@@ -59,7 +59,19 @@ function renderQuestion(i) {
   document.getElementById('questionText').innerText = q.q;
   const box = document.getElementById('optionsBox');
   box.innerHTML = '';
+  function generatePersonalizedRecommendations() {
+  // This enhances the scoring in browse.html with personalized logic
+  const recommendations = {
+    body: ANSWERS.body,
+    fuel: ANSWERS.fuel,
+    budget: ANSWERS.budget,
+    personality: ANSWERS.personality,
+    usage: ANSWERS.usage,
+    timestamp: new Date().toISOString()
+  };
   
+  localStorage.setItem('cf_recommendations', JSON.stringify(recommendations));
+}
   // Add search functionality for country question
   if (q.search) {
     const searchContainer = document.createElement('div');
@@ -174,20 +186,31 @@ function nextQuestion() {
   if (wIndex < QUESTIONS.length - 1) {
     wIndex++;
     renderQuestion(wIndex);
-  } else {
-    // Finished - store answers and navigate to browse with recommendations
-    localStorage.setItem('cf_answers', JSON.stringify(ANSWERS));
+} else {
+  // Finished - store answers and navigate to browse with recommendations
+  localStorage.setItem('cf_answers', JSON.stringify(ANSWERS));
+  
+  // Generate personalized recommendations
+  generatePersonalizedRecommendations();
+  
+  // Show loader briefly
+  const ld = document.getElementById('loader');
+  if (ld) {
+    ld.style.display = 'flex';
     
-    // Generate personalized recommendations
-    generatePersonalizedRecommendations();
-    
-    // Show loader
-    const ld = document.getElementById('loader');
-    if (ld) ld.style.display = 'flex';
-    setTimeout(() => { 
-      window.location.href = 'browse.html'; 
-    }, 1200);
+    // Safety timeout to hide loader in case redirect fails
+    setTimeout(() => {
+      if (ld) {
+        ld.style.display = 'none';
+      }
+    }, 3000); // Hide after 3 seconds max
   }
+  
+  // Redirect to browse page
+  setTimeout(() => { 
+    window.location.href = 'browse.html'; 
+  }, 800);
+}
 }
 
 function prevQuestion() {
