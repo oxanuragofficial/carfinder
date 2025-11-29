@@ -52,8 +52,8 @@ a{color:inherit;text-decoration:none}
   z-index:1;
 }
 .hero h1{
-  font-size:3.5rem;
-  margin:0 0 1rem;
+  font-size:5.5rem;
+  margin:0 0 5rem;
   line-height:1.1;
   font-weight:700;
   color:var(--text-primary);

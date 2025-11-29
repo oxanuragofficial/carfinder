@@ -138,8 +138,8 @@ const cars= [
     "features": ["Matrix LED", "RS Sport Suspension", "Bang & Olufsen", "Virtual Cockpit"],
     "description": "A fully electric grand tourer with stunning design and breathtaking performance.",
     "location": {"country": "Germany", "state": "Bavaria"}
-  },
-  {
+  },
+  {
 "id": 53,
     "brand": "Mercedes-Benz",
     "model": "EQS 580",
