@@ -49,7 +49,29 @@ const QUESTIONS = [
     options: ["Adventure Seeker - Off-road & Explore", "Family First - Safety & Comfort", "Tech Enthusiast - Latest Features", "Performance Lover - Speed & Power", "Eco Warrior - Green & Efficient", "Luxury Hunter - Premium & Status"] 
   }
 ];
+// Back button and page navigation fix
+window.addEventListener('pageshow', function(event) {
+  // Hide loader when page is shown (including back/forward navigation)
+  const loader = document.getElementById('loader');
+  if (loader) {
+    loader.style.display = 'none';
+  }
+  
+  // Reset wizard state if coming back via back button
+  if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+    wIndex = 0;
+    ANSWERS = {};
+    renderQuestion(0);
+  }
+});
 
+// Also hide loader on page load
+document.addEventListener('DOMContentLoaded', function() {
+  const loader = document.getElementById('loader');
+  if (loader) {
+    loader.style.display = 'none';
+  }
+});
 let wIndex = 0;
 let ANSWERS = {};
 
