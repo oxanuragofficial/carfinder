@@ -20,7 +20,7 @@
       border: 2px solid var(--border-color);
       display: block;
       margin: 0 auto;
-      touch-action: none;
+      touch-action: pan-y; /* Allow vertical scroll */
     }
     
     .game-controls {
@@ -91,12 +91,10 @@
       text-align: left;
     }
 
-    /* Prevent body scroll when touching game */
-    body.game-active {
-      overflow: hidden;
-      position: fixed;
-      width: 100%;
-      height: 100%;
+    /* Game area for touch controls */
+    .game-area {
+      position: relative;
+      margin: 0 auto;
     }
     
     @media (max-width: 768px) {
@@ -108,7 +106,7 @@
         width: 100%;
         height: auto;
         max-width: 400px;
-        max-height: 60vh;
+        max-height: 50vh;
       }
       
       .control-btn {
@@ -120,12 +118,16 @@
       .game-container {
         padding: 10px;
       }
+
+      .game-area {
+        max-width: 400px;
+      }
     }
     
     @media (max-width: 480px) {
       #gameCanvas {
         max-width: 350px;
-        max-height: 50vh;
+        max-height: 45vh;
       }
       
       .control-btn {
@@ -141,6 +143,10 @@
 
       h1 {
         font-size: 1.8rem;
+      }
+
+      .game-area {
+        max-width: 350px;
       }
     }
   </style>
@@ -179,7 +185,9 @@
         </div>
       </div>
       
-      <canvas id="gameCanvas" width="400" height="600"></canvas>
+      <div class="game-area">
+        <canvas id="gameCanvas" width="400" height="500"></canvas>
+      </div>
       
       <div class="mobile-controls">
         <button class="control-btn" id="leftBtn">←</button>
@@ -195,10 +203,11 @@
       <div class="instructions">
         <h3>How to Play:</h3>
         <p><strong>Desktop:</strong> Use LEFT/RIGHT arrow keys or A/D keys</p>
-        <p><strong>Mobile:</strong> Use the touch buttons or swipe on the game area</p>
+        <p><strong>Mobile:</strong> Use the touch buttons below the game</p>
         <p><strong>Goal:</strong> Avoid crashing into other cars</p>
         <p><strong>Scoring:</strong> +1 point for each car dodged</p>
         <p>Game gets faster every 15 points!</p>
+        <p><em>You can scroll the page normally while playing!</em></p>
       </div>
     </div>
   </main>
@@ -237,7 +246,6 @@
     
     // Controls
     const keys = {};
-    let isTouching = false;
     
     // Initialize displays
     document.getElementById('highScoreDisplay').textContent = gameState.highScore;
@@ -256,7 +264,7 @@
       }
     });
     
-    // Event listeners for touch controls - FIXED SCROLL ISSUE
+    // Event listeners for touch controls - FIXED: No scroll prevention
     document.getElementById('leftBtn').addEventListener('touchstart', (e) => {
       e.preventDefault();
       keys['ArrowLeft'] = true;
@@ -277,17 +285,24 @@
       keys['ArrowRight'] = false;
     });
     
-    // Touch swipe controls for mobile - FIXED SCROLL ISSUE
-    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+    // Touch controls for game area - FIXED: Allow scroll
+    let isDragging = false;
     
-    function handleTouchStart(e) {
-      e.preventDefault();
+    canvas.addEventListener('touchstart', (e) => {
       if (!gameState.running || gameState.paused) return;
       
-      isTouching = true;
-      document.body.classList.add('game-active');
+      isDragging = true;
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const canvasX = touch.clientX - rect.left;
+      
+      // Move player to touch position
+      player.x = canvasX - player.width / 2;
+      keepPlayerInBounds();
+    });
+    
+    canvas.addEventListener('touchmove', (e) => {
+      if (!gameState.running || gameState.paused || !isDragging) return;
       
       const touch = e.touches[0];
       const rect = canvas.getBoundingClientRect();
@@ -296,26 +311,11 @@
       // Move player to touch position
       player.x = canvasX - player.width / 2;
       keepPlayerInBounds();
-    }
+    });
     
-    function handleTouchMove(e) {
-      e.preventDefault();
-      if (!gameState.running || gameState.paused || !isTouching) return;
-      
-      const touch = e.touches[0];
-      const rect = canvas.getBoundingClientRect();
-      const canvasX = touch.clientX - rect.left;
-      
-      // Move player to touch position
-      player.x = canvasX - player.width / 2;
-      keepPlayerInBounds();
-    }
-    
-    function handleTouchEnd(e) {
-      e.preventDefault();
-      isTouching = false;
-      document.body.classList.remove('game-active');
-    }
+    canvas.addEventListener('touchend', () => {
+      isDragging = false;
+    });
     
     function keepPlayerInBounds() {
       if (player.x < 10) player.x = 10;
@@ -328,13 +328,6 @@
     document.getElementById('startBtn').addEventListener('click', startGame);
     document.getElementById('pauseBtn').addEventListener('click', togglePause);
     document.getElementById('resetBtn').addEventListener('click', resetGame);
-    
-    // Prevent scroll when touching control buttons
-    document.querySelectorAll('.control-btn').forEach(btn => {
-      btn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-      });
-    });
     
     function spawnObstacle() {
       const width = 40 + Math.random() * 30;
@@ -452,10 +445,6 @@
       ctx.lineTo(canvas.width / 2, canvas.height);
       ctx.stroke();
       ctx.setLineDash([]);
-      
-      // Side markings
-      ctx.fillRect(0, 0, 5, canvas.height);
-      ctx.fillRect(canvas.width - 5, 0, 5, canvas.height);
     }
     
     function drawCar(x, y, width, height, color, isPlayer) {
@@ -474,13 +463,6 @@
       ctx.fillRect(x - 3, y + height - 35, 5, 20);
       ctx.fillRect(x + width - 2, y + 15, 5, 20);
       ctx.fillRect(x + width - 2, y + height - 35, 5, 20);
-      
-      // Headlights (for player)
-      if (isPlayer) {
-        ctx.fillStyle = '#ffff00';
-        ctx.fillRect(x + 5, y + height - 5, 10, 3);
-        ctx.fillRect(x + width - 15, y + height - 5, 10, 3);
-      }
     }
     
     function drawGameInfo() {
@@ -545,7 +527,6 @@
     
     function gameOver() {
       gameState.running = false;
-      document.body.classList.remove('game-active');
       
       // Update high score
       if (gameState.score > gameState.highScore) {
@@ -568,11 +549,6 @@
     
     // Initial draw
     drawGame();
-
-    // Clean up when leaving page
-    window.addEventListener('beforeunload', () => {
-      document.body.classList.remove('game-active');
-    });
   </script>
 </body>
 </html>
